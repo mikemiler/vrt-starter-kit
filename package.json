@@ -1,0 +1,31 @@
+{
+  "name": "vrt-starter-kit",
+  "version": "1.0.0",
+  "description": "VRT Starter Kit: build your own visual regression testing tool for WordPress client sites.",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "workshop": {
+    "repo": "mikemiler/vrt-starter-kit"
+  },
+  "scripts": {
+    "start": "node scripts/start.js",
+    "doctor": "node scripts/doctor.js",
+    "demo": "node demo-site/server.js",
+    "step": "node scripts/step.js",
+    "reset": "node scripts/reset.js",
+    "capture": "node src/cli.js capture",
+    "baseline": "node src/cli.js baseline",
+    "compare": "node src/cli.js compare",
+    "pick": "node src/picker.js",
+    "check": "node src/cli.js check",
+    "inspect": "node src/inspect.js"
+  },
+  "dependencies": {
+    "pixelmatch": "^7.1.0",
+    "playwright-core": "1.64.1",
+    "pngjs": "^7.0.0"
+  }
+}

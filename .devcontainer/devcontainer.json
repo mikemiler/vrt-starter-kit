@@ -1,0 +1,13 @@
+{
+  "name": "VRT Starter Kit",
+  "image": "mcr.microsoft.com/playwright:v1.64.1-noble",
+  "postCreateCommand": "npm install --no-fund --no-audit && echo \"export VRT_BROWSER_PATH=$(node -e \\\"console.log(require('playwright-core').chromium.executablePath())\\\")\" >> ~/.bashrc",
+  "forwardPorts": [4000, 4100],
+  "portsAttributes": {
+    "4000": { "label": "Practice site" },
+    "4100": { "label": "Report", "onAutoForward": "openBrowser" }
+  },
+  "customizations": {
+    "codespaces": { "openFiles": ["README.md"] }
+  }
+}

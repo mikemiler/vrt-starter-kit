@@ -1,0 +1,5 @@
+[
+  { "name": "demo-home", "url": "http://localhost:4000/", "enabled": true },
+  { "name": "demo-about", "url": "http://localhost:4000/about.html", "enabled": true },
+  { "name": "demo-contact", "url": "http://localhost:4000/contact.html", "enabled": true }
+]
