@@ -1,0 +1,10 @@
+node_modules/
+screenshots/
+demo-site/.state.json
+_steps/
+.DS_Store
+snippets.json
+settings.json
+dist
+instructor/mirror-files
+_locked

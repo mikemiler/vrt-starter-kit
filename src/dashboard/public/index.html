@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VRT Starter Kit</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#/">
+      <span class="logo" aria-hidden="true">◐</span>
+      <span><strong>VRT Starter Kit</strong><span class="sub">Visual checks for your client sites</span></span>
+    </a>
+    <div class="top-right">
+      <a class="btn btn-small control-link" href="http://localhost:4000/" target="_blank" rel="noopener" title="Open the practice site (the bakery)">Practice site</a>
+      <a class="btn btn-small control-link" href="http://localhost:4000/control" target="_blank" rel="noopener" title="Switch errors on and off on the practice site">Break it</a>
+      <ol class="steps" id="steps"></ol>
+      <button class="btn btn-small code-link" id="code-btn" hidden title="Unlock the next step with the code word from the slides">🔓 Unlock step</button>
+    </div>
+  </header>
+
+  <div class="source-warning" id="source-warning" hidden>⚠️ <strong>Source folder</strong>: this is where the tool is built, not the workshop copy. In the workshop, start the attendee folder (<code>vrt-starter-kit</code>).</div>
+  <div class="unlock" id="unlock" hidden></div>
+  <div class="alert" id="config-error" hidden></div>
+
+  <main id="home" class="home">
+    <aside class="col-pages">
+      <section class="card">
+        <h2>Pages</h2>
+        <p class="hint">Switch on the screen sizes you want to check for each page.</p>
+        <div class="bulk" id="bulk"></div>
+        <ul class="pages" id="pages"></ul>
+        <form class="add" id="add-page">
+          <input id="new-url" type="text" placeholder="https://www.your-client.com/" autocomplete="off" aria-label="Page address">
+          <button class="btn" type="submit">Add</button>
+        </form>
+        <p class="error" id="add-error" hidden></p>
+        <p class="hint" id="add-locked" hidden>🔒 Your own client sites come in Step 3. Until then we practise on the bakery.</p>
+      </section>
+    </aside>
+
+    <div class="col-main">
+      <section class="card" id="actions"></section>
+      <section class="card" id="progress" hidden></section>
+      <section class="card" id="results" hidden></section>
+      <section class="card" id="checks"></section>
+      <section class="card" id="settings"></section>
+      <section class="card" id="prep"></section>
+      <section class="card" id="picker"></section>
+      <section class="card" id="snippets"></section>
+    </div>
+  </main>
+
+  <main id="detail" class="detail-page" hidden></main>
+
+  <script src="app.js"></script>
+</body>
+</html>

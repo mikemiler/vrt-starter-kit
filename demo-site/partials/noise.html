@@ -1,0 +1,29 @@
+<div id="cookie-banner" class="cookie-banner">
+  <p>🍪 We use cookies to make our croissants even better. <a href="#">Privacy policy</a></p>
+  <div><button>Only necessary</button> <button class="accept">Accept all</button></div>
+</div>
+<button class="chat-bubble" aria-label="Chat with us" style="background:{{NOISE_COLOR}}" hidden>💬</button>
+<script>
+  // Cookie banner buttons: clicking either one closes the banner, like a real one.
+  document.querySelectorAll('#cookie-banner button').forEach(function (btn) {
+    btn.addEventListener('click', function () { document.getElementById('cookie-banner').remove(); });
+  });
+  // Chat bubble: pops up a moment after loading, in a new colour on every visit.
+  setTimeout(function () { document.querySelector('.chat-bubble').hidden = false; }, 200 + Math.random() * 500);
+  // Animations: every visit catches them at a different moment.
+  document.querySelectorAll('.card').forEach(function (card) { card.style.animationDelay = (Math.random() * 0.9).toFixed(2) + 's'; });
+  document.querySelector('.chat-bubble').style.animationDelay = '-' + (Math.random() * 1.4).toFixed(2) + 's';
+  // Rotating slider: starts on a random slide and moves every 3 seconds.
+  (function () {
+    var slides = document.querySelectorAll('.hero-slide');
+    if (!slides.length) return;
+    var i = Number(document.documentElement.dataset.slide || 0);
+    document.documentElement.removeAttribute('data-slide');
+    slides[i].classList.add('active');
+    setInterval(function () {
+      slides[i].classList.remove('active');
+      i = (i + 1) % slides.length;
+      slides[i].classList.add('active');
+    }, 3000);
+  })();
+</script>
