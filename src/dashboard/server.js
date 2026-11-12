@@ -30,7 +30,7 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 
 const STEP = capture.lockedUntil ? 0 : (compare.lockedUntil || report.lockedUntil) ? 1
   : !stabilize.active ? 2 : 3;
 
-const state = { job: null, lastCheck: null, picks: [], next: { n: STEP + 1, available: false } };
+const state = { loginPick: null, job: null, lastCheck: null, picks: [], next: { n: STEP + 1, available: false } };
 ensureDirs();
 
 const readJson = (file) => { try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return null; } };
@@ -54,6 +54,7 @@ async function getState() {
     settings: current,
     pages: safe(() => pages.loadPages(), []).map((p) => ({ ...p, on: Object.fromEntries(viewports.map((v) => [v, pages.isOn(p, v)])) })),
     logins: safe(() => auth.publicLogins(), []), // never includes passwords
+    loginPick: state.loginPick,
     snippets: STEP >= 3 ? safe(() => snippets.loadSnippets(), []) : [],
     configError,
     gallery: STEP >= 1 ? gallery.loadGallery() : [],
@@ -118,6 +119,32 @@ function startPicker(url, pageName) {
   });
 }
 
+// "Pick fields" for a login: a visible browser where you click the email, password and login button.
+function startLoginPicker(id) {
+  if (state.loginPick?.running) throw Object.assign(new Error('A field picker is already open. Finish or close its browser window first.'), { status: 409 });
+  const pick = { id, running: true, picks: {}, ok: null, error: null };
+  state.loginPick = pick;
+  const child = spawn(process.execPath, [path.join(ROOT, 'src', 'login-picker.js'), id], { cwd: ROOT });
+  let errors = '';
+  child.stderr.on('data', (chunk) => { errors += chunk; });
+  child.on('error', (err) => { pick.running = false; pick.error = err.message; });
+  child.on('exit', () => { pick.running = false; if (pick.ok === null) { pick.ok = false; pick.error = pick.error || errors.trim().split(/\r?\n/).filter(Boolean).slice(-2).join(' ') || 'The picker stopped.'; } });
+  let buffer = '';
+  child.stdout.on('data', (chunk) => {
+    buffer += chunk;
+    const lines = buffer.split(/\r?\n/);
+    buffer = lines.pop();
+    for (const line of lines) {
+      if (!line.startsWith('LOGINPICK ')) continue;
+      try {
+        const e = JSON.parse(line.slice(10));
+        if (e.field) pick.picks[e.field] = e.selector;
+        if (e.done) { pick.ok = e.ok; pick.error = e.error || null; }
+      } catch { /* ignore */ }
+    }
+  });
+}
+
 const step4 = () => { if (STEP < 3) throw Object.assign(new Error('Not unlocked yet.'), { status: 403 }); };
 
 // ---------------------------------------------------------------- routes
@@ -161,6 +188,7 @@ const routes = [
     for (const p of pages.loadPages()) if (p.login === id) pages.setLogin(p.name, '');
     return auth.publicLogins();
   }],
+  ['POST', `/api/logins/${ID}/pick`, async (req, [id]) => { step4(); startLoginPicker(id); return { started: id }; }],
   ['POST', `/api/logins/${ID}/test`, async (req, [id]) => auth.loginStandalone(await loadConfig(), id)],
   ['POST', `/api/pages/${ID}/login`, async (req, [name]) => pages.setLogin(name, (await readBody(req)).login)],
   ['POST', '/api/settings', async (req) => settings.saveSettings(await readBody(req))],

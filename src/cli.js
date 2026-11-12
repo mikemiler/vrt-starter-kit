@@ -20,7 +20,17 @@ async function runLogin(config) {
     return [key === 'url' ? 'loginUrl' : key, rest.join('=')];
   }));
   const id = args.find((a) => !a.startsWith('--'));
+  const pick = 'pick' in flags;
+  delete flags.pick;
   if (id && Object.keys(flags).length) auth.saveLogin({ id, ...flags });
+  if (pick) { // npm run login -- <name> --pick: click the form fields in a real browser
+    if (!id) return ui.warn('Which login? Example: npm run login -- cms --pick');
+    ui.title(`🎯 Pick the login fields for "${id}"`);
+    const { pickLoginFields } = await import('./login-picker.js'); // needs the element picker (Step 3)
+    const res = await pickLoginFields(config, id, { onEvent: (e) => { if (e.field) ui.ok(`${e.field.padEnd(18)} ${ui.bold(e.selector)}`); } });
+    if (res.ok) ui.ok('Login works.'); else { ui.fail(res.error); process.exitCode = 1; }
+    return;
+  }
   const ids = id ? [id] : auth.listLoginIds();
   if (!ids.length) return ui.warn('No logins yet. Example: npm run login cms -- --url=http://localhost:3150/admin/login --email=you@example.com --password=...');
   ui.title(`🔑 Logging in: ${ids.join(', ')}`);

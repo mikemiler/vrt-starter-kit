@@ -286,7 +286,7 @@ async function renderChecks(step) {
 // ------------------------------------------------------------ logins
 // Pages behind a login (an admin panel, a client area): save the credentials once, pick the login per page.
 // Passwords are sent to the server and stored in auth.json on this laptop; they are never sent back here.
-function renderLogins({ logins, pages }) {
+function renderLogins({ logins, pages, loginPick, step }) {
   const el = $('#logins');
   el.className = 'card';
   el.innerHTML = `<h2>Logins</h2>
@@ -295,6 +295,7 @@ function renderLogins({ logins, pages }) {
     ${logins.length ? `<ul class="pages">${logins.map((l) => `<li>
       <span class="page-text"><span class="name">${esc(l.id)}</span><span class="url">${esc(l.email)} · ${esc(l.loginUrl)}</span>
         <span class="url">${l.session ? `Session saved ${esc(when(l.session))}` : 'Not logged in yet'}${l.hasPassword ? '' : ' · no password'}</span></span>
+      <button class="btn btn-small" data-login-pick="${esc(l.id)}" title="Open the login page and click the email field, the password field and the login button" ${loginPick?.running || step < 3 ? 'disabled' : ''}>🎯 Pick fields${step < 3 ? ' (Step 3)' : ''}</button>
       <button class="btn btn-small" data-login-test="${esc(l.id)}">Log in now</button>
       <button class="remove" data-login-del="${esc(l.id)}" title="Remove">×</button></li>`).join('')}</ul>` : '<p class="hint">No logins yet.</p>'}
     <form id="login-form" class="login-form">
@@ -311,6 +312,8 @@ function renderLogins({ logins, pages }) {
       </details>
       <button class="btn" type="submit">Save</button>
     </form>
+    ${loginPick ? `<p class="hint">${loginPick.running ? `🎯 Browser open for "${esc(loginPick.id)}": click the email field, the password field and the login button.` : loginPick.ok ? `✔ Fields picked for "${esc(loginPick.id)}" and the login works.` : `✘ ${esc(loginPick.error || 'The picker stopped.')}`}
+      ${Object.entries(loginPick.picks || {}).map(([k, v]) => `<br><code>${esc(k)}</code> ${esc(v)}`).join('')}</p>` : ''}
     <p class="error" id="login-error" hidden></p>
     ${logins.length && pages.length ? `<h3 class="sub-h">Photograph as</h3>
       <ul class="pages">${pages.map((p) => `<li><span class="page-text"><span class="name">${esc(p.name)}</span></span>
@@ -330,6 +333,12 @@ $('#logins').addEventListener('submit', async (e) => {
   } catch (error) { err.textContent = error.message; err.hidden = false; }
 });
 $('#logins').addEventListener('click', async (e) => {
+  const pick = e.target.closest('[data-login-pick]');
+  if (pick) {
+    $('#login-error').hidden = true;
+    try { await api('POST', `/api/logins/${pick.dataset.loginPick}/pick`); refresh(); } catch (error) { $('#login-error').textContent = error.message; $('#login-error').hidden = false; }
+    return;
+  }
   const test = e.target.closest('[data-login-test]');
   const del = e.target.closest('[data-login-del]');
   const err = $('#login-error');
@@ -711,7 +720,7 @@ async function refresh() {
   draw('actions', { step: s.step, job: s.job && { finished: s.job.finished }, baseline: s.baseline, showBrowser: s.settings?.showBrowser }, renderActions);
   draw('progress', s.job, renderProgress);
   draw('results', { step: s.step, gallery: s.gallery, lastCheck: s.lastCheck }, renderResults);
-  draw('logins', { logins: s.logins, pages: s.pages.map((p) => ({ name: p.name, login: p.login })) }, renderLogins);
+  draw('logins', { step: s.step, logins: s.logins, loginPick: s.loginPick, pages: s.pages.map((p) => ({ name: p.name, login: p.login })) }, renderLogins);
   draw('settings', { step: s.step, settings: s.settings, pages: s.pages.map((p) => ({ name: p.name, threshold: p.threshold })) }, renderSettings);
   draw('prep', { step: s.step, pages: s.pages, snippets: s.snippets, prepPage }, renderPrep);
   draw('picker', { step: s.step, pages: s.pages, picks: s.picks, pickerError: s.pickerError }, renderPicker);

@@ -118,6 +118,12 @@ tool logs in once per login in a real browser and photographs those pages as tha
 - **Or use environment variables** (they win over `auth.json`; a `.env` file in this folder is read too):
   `VRT_LOGIN_<NAME>_URL`, `VRT_LOGIN_<NAME>_EMAIL`, `VRT_LOGIN_<NAME>_PASSWORD` (name upper-cased, other
   characters become `_`). See `.env.example`.
+- **Pick the fields by clicking (Step 3, uses the element picker):** in the dashboard press **🎯 Pick fields**
+  next to a login, or run `npm run login -- <name> --pick`. The login page opens in a visible browser; click the
+  email field, the password field and the login button (the bar at the bottom tells you which). The selectors are
+  saved into the login and the login is tried once, so you see right away whether it works. Email, "Next",
+  password forms: switch "Picking" OFF in the top bar, type the email, press Next, switch it ON and click the
+  password field.
 - **A form that is not standard:** open **Logins → Field selectors** in the dashboard, or set them in
   `auth.json` / the environment: `emailSelector`, `passwordSelector`, `submitSelector` (CSS selectors;
   env: `VRT_LOGIN_<NAME>_EMAIL_SELECTOR`, `_PASSWORD_SELECTOR`, `_SUBMIT_SELECTOR`). The defaults cover
