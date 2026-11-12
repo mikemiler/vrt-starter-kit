@@ -157,7 +157,7 @@ function groupBySite(pages) {
 
 const pageRow = (p, viewports) => `
     <li class="page">
-      <span class="page-text"><span class="name">${esc(p.name)}</span><span class="url">${esc(p.url)}</span></span>
+      <span class="page-text"><span class="name">${esc(p.name)}</span><span class="url">${esc(p.url)}${p.login ? ` · 🔑 ${esc(p.login)}` : ''}</span></span>
       <span class="devices">${viewports.map((v) => `<button class="device ${p.on[v] ? 'on' : ''}" data-page="${esc(p.name)}" data-viewport="${esc(v)}"
         aria-pressed="${p.on[v]}" title="${p.on[v] ? 'Switch off' : 'Switch on'}: ${esc(v)} for this page">${esc(v)}</button>`).join('')}</span>
       <button class="remove" data-remove="${esc(p.name)}" title="Remove">×</button>
@@ -336,6 +336,81 @@ async function renderChecks(step) {
       </table>` : '<p class="hint">No checks yet. Take a baseline, then compare.</p>'}`;
   el.querySelectorAll('[data-check]').forEach((tr) => { tr.onclick = () => { location.hash = `#/check/${tr.dataset.check}`; }; });
 }
+
+// ------------------------------------------------------------ logins
+// Pages behind a login (an admin panel, a client area): save the credentials once, pick the login per page.
+// Passwords are sent to the server and stored in auth.json on this laptop; they are never sent back here.
+function renderLogins({ logins, pages, loginPick, step }) {
+  const el = $('#logins');
+  el.className = 'card';
+  el.innerHTML = `<h2>Logins</h2>
+    <p class="hint">For pages behind a login. We log in once before every run and photograph the pages below as that user.
+      Saved only on this laptop (<code>auth.json</code>, git-ignored).</p>
+    ${logins.length ? `<ul class="pages">${logins.map((l) => `<li>
+      <span class="page-text"><span class="name">${esc(l.id)}</span><span class="url">${esc(l.email)} · ${esc(l.loginUrl)}</span>
+        <span class="url">${l.session ? `Session saved ${esc(when(l.session))}` : 'Not logged in yet'}${l.hasPassword ? '' : ' · no password'}</span></span>
+      <button class="btn btn-small" data-login-pick="${esc(l.id)}" title="Open the login page and click the email field, the password field and the login button" ${loginPick?.running || step < 3 ? 'disabled' : ''}>🎯 Pick fields${step < 3 ? ' (Step 3)' : ''}</button>
+      <button class="btn btn-small" data-login-test="${esc(l.id)}">Log in now</button>
+      <button class="remove" data-login-del="${esc(l.id)}" title="Remove">×</button></li>`).join('')}</ul>` : '<p class="hint">No logins yet.</p>'}
+    <form id="login-form" class="login-form">
+      <input name="id" placeholder="Name, e.g. cms" required autocomplete="off">
+      <input name="loginUrl" placeholder="Login page, e.g. http://localhost:3150/admin/login" required autocomplete="off">
+      <input name="email" placeholder="Email or username" autocomplete="off">
+      <input name="password" type="password" placeholder="Password (empty keeps the saved one)" autocomplete="new-password">
+      <details><summary>Field selectors (only if the form is not a standard one)</summary>
+        <p class="hint">CSS selectors; empty = automatic. Also settable per login with <code>VRT_LOGIN_&lt;NAME&gt;_EMAIL_SELECTOR</code>, <code>_PASSWORD_SELECTOR</code>, <code>_SUBMIT_SELECTOR</code>, <code>_SUCCESS_SELECTOR</code>.</p>
+        <input name="emailSelector" placeholder="Email field, e.g. #user" autocomplete="off">
+        <input name="passwordSelector" placeholder="Password field, e.g. #pass" autocomplete="off">
+        <input name="submitSelector" placeholder="Login button, e.g. #go" autocomplete="off">
+        <input name="successSelector" placeholder="Visible once logged in, e.g. .dashboard (default: left the login page)" autocomplete="off">
+      </details>
+      <button class="btn" type="submit">Save</button>
+    </form>
+    ${loginPick ? `<p class="hint">${loginPick.running ? `🎯 Browser open for "${esc(loginPick.id)}": click the email field, the password field and the login button.` : loginPick.ok ? `✔ Fields picked for "${esc(loginPick.id)}" and the login works.` : `✘ ${esc(loginPick.error || 'The picker stopped.')}`}
+      ${Object.entries(loginPick.picks || {}).map(([k, v]) => `<br><code>${esc(k)}</code> ${esc(v)}`).join('')}</p>` : ''}
+    <p class="error" id="login-error" hidden></p>
+    ${logins.length && pages.length ? `<h3 class="sub-h">Photograph as</h3>
+      <ul class="pages">${pages.map((p) => `<li><span class="page-text"><span class="name">${esc(p.name)}</span></span>
+        <select data-login-page="${esc(p.name)}" aria-label="Login for ${esc(p.name)}">
+          <option value="">not logged in</option>
+          ${logins.map((l) => `<option value="${esc(l.id)}" ${p.login === l.id ? 'selected' : ''}>${esc(l.id)}</option>`).join('')}
+        </select></li>`).join('')}</ul>` : ''}`;
+}
+
+$('#logins').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const err = $('#login-error');
+  err.hidden = true;
+  try {
+    await api('POST', '/api/logins', Object.fromEntries([...new FormData(e.target)].filter(([, v]) => v !== ''))); // empty fields keep what is saved
+    refresh();
+  } catch (error) { err.textContent = error.message; err.hidden = false; }
+});
+$('#logins').addEventListener('click', async (e) => {
+  const pick = e.target.closest('[data-login-pick]');
+  if (pick) {
+    $('#login-error').hidden = true;
+    try { await api('POST', `/api/logins/${pick.dataset.loginPick}/pick`); refresh(); } catch (error) { $('#login-error').textContent = error.message; $('#login-error').hidden = false; }
+    return;
+  }
+  const test = e.target.closest('[data-login-test]');
+  const del = e.target.closest('[data-login-del]');
+  const err = $('#login-error');
+  if (test) {
+    test.disabled = true; test.textContent = 'Logging in…'; err.hidden = true;
+    try {
+      const res = await api('POST', `/api/logins/${test.dataset.loginTest}/test`);
+      if (!res.ok) { err.textContent = res.error; err.hidden = false; }
+    } catch (error) { err.textContent = error.message; err.hidden = false; }
+    test.disabled = false; test.textContent = 'Log in now';
+    refresh();
+  }
+  if (del && confirm(`Remove the login "${del.dataset.loginDel}"?`)) { await api('DELETE', `/api/logins/${del.dataset.loginDel}`); refresh(); }
+});
+$('#logins').addEventListener('change', async (e) => {
+  const select = e.target.closest('[data-login-page]');
+  if (select) { await api('POST', `/api/pages/${select.dataset.loginPage}/login`, { login: select.value }); refresh(); }
+});
 
 // ------------------------------------------------------------ settings (Step 1 and 2)
 function renderSettings({ step, settings, pages }) {
@@ -699,6 +774,7 @@ async function refresh() {
   draw('actions', { step: s.step, job: s.job && { finished: s.job.finished }, baseline: s.baseline, showBrowser: s.settings?.showBrowser }, renderActions);
   draw('progress', s.job, renderProgress);
   draw('results', { step: s.step, gallery: s.gallery, lastCheck: s.lastCheck }, renderResults);
+  draw('logins', { step: s.step, logins: s.logins, loginPick: s.loginPick, pages: s.pages.map((p) => ({ name: p.name, login: p.login })) }, renderLogins);
   draw('settings', { step: s.step, settings: s.settings, pages: s.pages.map((p) => ({ name: p.name, threshold: p.threshold })) }, renderSettings);
   draw('prep', { step: s.step, pages: s.pages, snippets: s.snippets, prepPage }, renderPrep);
   draw('picker', { step: s.step, pages: s.pages, picks: s.picks, pickerError: s.pickerError }, renderPicker);
