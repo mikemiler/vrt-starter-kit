@@ -81,6 +81,16 @@ export function setThreshold(name, value) {
   }));
 }
 
+// Photograph this page logged in with the named login (empty = not logged in).
+export function setLogin(name, login) {
+  const id = String(login || '').trim();
+  return savePages(loadPages().map((p) => {
+    if (p.name !== name) return p;
+    const { login: old, ...rest } = p;
+    return id ? { ...rest, login: id } : rest;
+  }));
+}
+
 export function removePage(name) {
   return savePages(loadPages().filter((p) => p.name !== name));
 }

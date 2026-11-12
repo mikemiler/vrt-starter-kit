@@ -88,6 +88,7 @@ The same works in the terminal, handy for automation:
 | `npm run check` | Takes after photos, compares, tells you the result |
 | `npm run capture` | Takes plain screenshots |
 | `npm run pick <url>` | Element picker, without the dashboard |
+| `npm run login [name]` | Logs in to a system and saves the session (see below) |
 | `npm run doctor` | Checks your laptop is ready |
 | `npm run reset` | Back to the start: Step 0, practice pages only, no photos |
 
@@ -97,6 +98,28 @@ or with Playwright Test.
 **Your own snippets with AI:** `examples/ai-skill` has a skill for Claude, ChatGPT and other AI
 assistants. Describe what moves on a client page, get a ready-to-paste snippet. Also in the
 dashboard under **Snippets → Download the AI skill** (from Step 3).
+
+## Pages behind a login
+
+For admin panels and client areas. Add a **login** (name, login page, email, password) in the
+dashboard under **Logins**, or from the terminal:
+
+```sh
+npm run login cms -- --url=http://localhost:3150/admin/login --email=you@example.com --password=...
+npm run login        # log in with every saved login
+```
+
+Then pick the login per page (**Photograph as**, or `"login": "cms"` in `pages.json`). Before a run the
+tool logs in once per login in a real browser and photographs those pages as that user.
+
+- **Where it is stored:** `auth.json` (email, password, optional field selectors) and `.auth/<name>.json`
+  (the saved browser session). Both are git-ignored and written with mode `0600`, meant for local use.
+  The dashboard never sends a password back to the browser.
+- **Or use environment variables** (they win over `auth.json`; a `.env` file in this folder is read too):
+  `VRT_LOGIN_<NAME>_URL`, `VRT_LOGIN_<NAME>_EMAIL`, `VRT_LOGIN_<NAME>_PASSWORD` (name upper-cased, other
+  characters become `_`). See `.env.example`.
+- **A form that is not standard:** set `emailSelector`, `passwordSelector`, `submitSelector` for the login
+  in `auth.json`. The defaults cover Payload, WordPress and most `type="email"` / `type="password"` forms.
 
 ## Troubleshooting
 

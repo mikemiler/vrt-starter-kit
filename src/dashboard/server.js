@@ -12,6 +12,7 @@ import * as pages from '../pages.js';
 import * as snippets from '../snippets.js';
 import * as settings from '../settings.js';
 import * as steps from '../steps.js';
+import * as auth from '../auth.js';
 import * as capture from '../capture.js';
 import * as gallery from '../gallery.js';
 import * as compare from '../compare.js';
@@ -52,6 +53,7 @@ async function getState() {
     viewports,
     settings: current,
     pages: safe(() => pages.loadPages(), []).map((p) => ({ ...p, on: Object.fromEntries(viewports.map((v) => [v, pages.isOn(p, v)])) })),
+    logins: safe(() => auth.publicLogins(), []), // never includes passwords
     snippets: STEP >= 3 ? safe(() => snippets.loadSnippets(), []) : [],
     configError,
     gallery: STEP >= 1 ? gallery.loadGallery() : [],
@@ -152,6 +154,15 @@ const routes = [
   }],
   ['DELETE', `/api/pages/${ID}`, async (req, [name]) => pages.removePage(name)],
   ['POST', `/api/pages/${ID}/threshold`, async (req, [name]) => pages.setThreshold(name, (await readBody(req)).threshold)],
+  // Logins for pages behind a login (auth.js). Passwords go in, never out.
+  ['POST', '/api/logins', async (req) => { auth.saveLogin(await readBody(req)); return auth.publicLogins(); }],
+  ['DELETE', `/api/logins/${ID}`, async (req, [id]) => {
+    auth.deleteLogin(id);
+    for (const p of pages.loadPages()) if (p.login === id) pages.setLogin(p.name, '');
+    return auth.publicLogins();
+  }],
+  ['POST', `/api/logins/${ID}/test`, async (req, [id]) => auth.loginStandalone(await loadConfig(), id)],
+  ['POST', `/api/pages/${ID}/login`, async (req, [name]) => pages.setLogin(name, (await readBody(req)).login)],
   ['POST', '/api/settings', async (req) => settings.saveSettings(await readBody(req))],
   ['POST', '/api/pages-all', async (req) => {
     const { viewport, on } = await readBody(req);

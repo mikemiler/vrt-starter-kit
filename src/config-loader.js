@@ -88,6 +88,7 @@ export function buildShots(config) {
         viewport,
         settings,
         steps: page.steps || [], // Step 3: snippets to run before the photo
+        login: page.login || null, // name of a login (auth.js): photograph the page logged in
       });
     }
   }
