@@ -52,7 +52,7 @@ async function getState() {
     next: STEP < 3 ? state.next : null,
     viewports,
     settings: current,
-    pages: safe(() => pages.loadPages(), []).map((p) => ({ ...p, on: Object.fromEntries(viewports.map((v) => [v, pages.isOn(p, v)])) })),
+    pages: safe(() => pages.loadPages(), []).map((p) => ({ ...p, site: pages.siteOf(p.url), on: Object.fromEntries(viewports.map((v) => [v, pages.isOn(p, v)])) })),
     logins: safe(() => auth.publicLogins(), []), // never includes passwords
     loginPick: state.loginPick,
     snippets: STEP >= 3 ? safe(() => snippets.loadSnippets(), []) : [],
@@ -192,6 +192,13 @@ const routes = [
   ['POST', `/api/logins/${ID}/test`, async (req, [id]) => auth.loginStandalone(await loadConfig(), id)],
   ['POST', `/api/pages/${ID}/login`, async (req, [name]) => pages.setLogin(name, (await readBody(req)).login)],
   ['POST', '/api/settings', async (req) => settings.saveSettings(await readBody(req))],
+  // Desktop / mobile for a whole website at once (the switches in the website's header).
+  ['POST', '/api/sites/([^/]+)', async (req, [site]) => {
+    const { viewport, on } = await readBody(req);
+    const all = (await loadConfig()).viewports.map((v) => v.name);
+    if (!all.includes(viewport)) throw Object.assign(new Error('Unknown screen size.'), { status: 400 });
+    return pages.setDeviceForSite(decodeURIComponent(site), viewport, on, all);
+  }],
   ['POST', '/api/pages-all', async (req) => {
     const { viewport, on } = await readBody(req);
     return pages.setDeviceForAll(viewport, on, (await loadConfig()).viewports.map((v) => v.name));

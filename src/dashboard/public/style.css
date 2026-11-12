@@ -72,6 +72,17 @@ h2 { font-size: 17px; margin: 0 0 4px; }
 .device { font: inherit; font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--muted); cursor: pointer; text-transform: capitalize; }
 .device.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 .device:hover { border-color: var(--accent); }
+.device.partial { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.pages li.site { display: block; padding: 0; border: 1px solid var(--line); border-radius: 10px; }
+.pages li.site:hover { background: none; }
+.site + .site { margin-top: 6px; }
+.site-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 4px; background: var(--grey-soft); border-radius: 10px; }
+.site:not(.collapsed) .site-head { border-radius: 10px 10px 0 0; }
+.site-head .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.site-toggle { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 14px; width: 24px; padding: 2px 0; border-radius: 6px; flex: none; }
+.site-toggle:hover { color: var(--ink); background: var(--panel); }
+.site-pages { list-style: none; margin: 0; padding: 4px; display: flex; flex-direction: column; gap: 2px; }
+.site-head .devices { margin-right: 34px; } /* lines up with the page switches (room of the × button) */
 .pages .name { display: block; font-size: 14px; font-weight: 600; }
 .pages .url { display: block; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pages .remove { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 18px; padding: 2px 6px; border-radius: 6px; }

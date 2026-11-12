@@ -42,8 +42,16 @@ export function addPage(rawUrl) {
     if (siteOf(p.url) !== siteOf(url)) continue;
     for (const s of p.steps || []) if (s.site && !siteSteps.some((x) => x.snippet === s.snippet && x.value === s.value)) siteSteps.push(s);
   }
+  // Screen sizes: if every page of this website has the same switches, the new page
+  // gets them too (so "mobile off for the whole website" stays off). Otherwise all on.
+  const siblings = pages.filter((p) => siteOf(p.url) === siteOf(url));
+  const same = siblings.length && siblings.every((p) => JSON.stringify(p.devices) === JSON.stringify(siblings[0].devices));
+  const page = { name, url };
   const login = auth.loginForUrl(url); // a saved login for this website: photograph the page logged in
-  pages.push({ name, url, ...(login && { login }), ...(siteSteps.length && { steps: siteSteps }) }); // all screen sizes on
+  if (login) page.login = login;
+  if (same && siblings[0].devices) page.devices = { ...siblings[0].devices };
+  if (siteSteps.length) page.steps = siteSteps;
+  pages.push(page);
   return savePages(pages);
 }
 
@@ -69,6 +77,20 @@ export function setDevice(name, viewport, on, allViewports = []) {
 export function setDeviceForAll(viewport, on, allViewports = []) {
   for (const p of loadPages()) setDevice(p.name, viewport, on, allViewports);
   return loadPages();
+}
+
+// Switch one screen size on or off for every page of one website (e.g. "example.com").
+// Each page keeps its own switches; this just sets them all at once.
+export function setDeviceForSite(site, viewport, on, allViewports = []) {
+  const pages = loadPages();
+  if (!pages.some((p) => siteOf(p.url) === site)) throw problem(`There is no website "${site}" in the list.`);
+  return savePages(pages.map((p) => {
+    if (siteOf(p.url) !== site) return p;
+    const devices = Object.fromEntries(allViewports.map((v) => [v, isOn(p, v)]));
+    devices[viewport] = Boolean(on);
+    const { enabled, ...rest } = p;
+    return { ...rest, devices };
+  }));
 }
 
 // A page's own threshold (empty = use the general one). Step 2.
