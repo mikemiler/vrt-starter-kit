@@ -2,6 +2,7 @@
 // The dashboard adds, removes and ticks pages here. You can also edit the file by hand.
 import fs from 'node:fs';
 import { PAGES_FILE } from './paths.js';
+import * as auth from './auth.js';
 
 export function loadPages() {
   if (!fs.existsSync(PAGES_FILE)) return [];
@@ -41,7 +42,8 @@ export function addPage(rawUrl) {
     if (siteOf(p.url) !== siteOf(url)) continue;
     for (const s of p.steps || []) if (s.site && !siteSteps.some((x) => x.snippet === s.snippet && x.value === s.value)) siteSteps.push(s);
   }
-  pages.push(siteSteps.length ? { name, url, steps: siteSteps } : { name, url }); // all screen sizes on
+  const login = auth.loginForUrl(url); // a saved login for this website: photograph the page logged in
+  pages.push({ name, url, ...(login && { login }), ...(siteSteps.length && { steps: siteSteps }) }); // all screen sizes on
   return savePages(pages);
 }
 
@@ -79,6 +81,13 @@ export function setThreshold(name, value) {
     const { threshold, ...rest } = p;
     return empty ? rest : { ...rest, threshold: n };
   }));
+}
+
+// A login was saved: pages of the same website that have no login yet use it.
+export function linkLoginToSite(id) {
+  const login = auth.resolveLogin(id);
+  if (!login) return loadPages();
+  return savePages(loadPages().map((p) => (!p.login && auth.sameOrigin(p.url, login.loginUrl) ? { ...p, login: id } : p)));
 }
 
 // Photograph this page logged in with the named login (empty = not logged in).

@@ -59,6 +59,11 @@ export function resolveLogin(id) {
   };
 }
 
+export const sameOrigin = (a, b) => { try { return new URL(a).origin === new URL(b).origin; } catch { return false; } };
+
+// The saved login whose login page is on the same website (origin) as this url, if any.
+export const loginForUrl = (url) => listLoginIds().find((id) => sameOrigin(url, resolveLogin(id)?.loginUrl)) || null;
+
 export const listLoginIds = () => Object.keys(readFile());
 
 export const sessionTime = (id) => {

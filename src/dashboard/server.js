@@ -155,7 +155,7 @@ const routes = [
   ['DELETE', `/api/pages/${ID}`, async (req, [name]) => pages.removePage(name)],
   ['POST', `/api/pages/${ID}/threshold`, async (req, [name]) => pages.setThreshold(name, (await readBody(req)).threshold)],
   // Logins for pages behind a login (auth.js). Passwords go in, never out.
-  ['POST', '/api/logins', async (req) => { auth.saveLogin(await readBody(req)); return auth.publicLogins(); }],
+  ['POST', '/api/logins', async (req) => { pages.linkLoginToSite(auth.saveLogin(await readBody(req))); return auth.publicLogins(); }],
   ['DELETE', `/api/logins/${ID}`, async (req, [id]) => {
     auth.deleteLogin(id);
     for (const p of pages.loadPages()) if (p.login === id) pages.setLogin(p.name, '');

@@ -147,7 +147,7 @@ function renderPages({ pages, viewports }) {
   }).join('') : '';
   $('#pages').innerHTML = pages.length ? pages.map((p) => `
     <li>
-      <span class="page-text"><span class="name">${esc(p.name)}</span><span class="url">${esc(p.url)}</span></span>
+      <span class="page-text"><span class="name">${esc(p.name)}</span><span class="url">${esc(p.url)}${p.login ? ` · 🔑 ${esc(p.login)}` : ''}</span></span>
       <span class="devices">${viewports.map((v) => `<button class="device ${p.on[v] ? 'on' : ''}" data-page="${esc(p.name)}" data-viewport="${esc(v)}"
         aria-pressed="${p.on[v]}" title="${p.on[v] ? 'Switch off' : 'Switch on'}: ${esc(v)}">${esc(v)}</button>`).join('')}</span>
       <button class="remove" data-remove="${esc(p.name)}" title="Remove">×</button>
