@@ -140,18 +140,57 @@ async function switchStep(n, btn) {
 }
 
 // ------------------------------------------------------------ pages
+// Pages are grouped by website (www.example.com and example.com count as one).
+// The switches in a website's header switch that size for all its pages;
+// every page keeps its own switches too.
+const collapsedSites = new Set(); // websites folded up by the user
+
+function groupBySite(pages) {
+  const groups = new Map();
+  for (const p of pages) {
+    const site = p.site || p.url;
+    if (!groups.has(site)) groups.set(site, []);
+    groups.get(site).push(p);
+  }
+  return [...groups].map(([site, list]) => ({ site, pages: list }));
+}
+
+const pageRow = (p, viewports) => `
+    <li class="page">
+      <span class="page-text"><span class="name">${esc(p.name)}</span><span class="url">${esc(p.url)}</span></span>
+      <span class="devices">${viewports.map((v) => `<button class="device ${p.on[v] ? 'on' : ''}" data-page="${esc(p.name)}" data-viewport="${esc(v)}"
+        aria-pressed="${p.on[v]}" title="${p.on[v] ? 'Switch off' : 'Switch on'}: ${esc(v)} for this page">${esc(v)}</button>`).join('')}</span>
+      <button class="remove" data-remove="${esc(p.name)}" title="Remove">×</button>
+    </li>`;
+
+function siteRow({ site, pages }, viewports) {
+  const open = !collapsedSites.has(site);
+  const buttons = viewports.map((v) => {
+    const on = pages.filter((p) => p.on[v]).length;
+    const cls = on === pages.length ? 'on' : on ? 'partial' : '';
+    const title = on === pages.length ? `Switch off ${v} for all pages of ${site}`
+      : `Switch on ${v} for all pages of ${site}${on ? ` (now ${on} of ${pages.length})` : ''}`;
+    return `<button class="device ${cls}" data-site="${esc(site)}" data-viewport="${esc(v)}" data-on="${on !== pages.length}"
+      aria-pressed="${on === pages.length ? 'true' : on ? 'mixed' : 'false'}" title="${esc(title)}">${esc(v)}</button>`;
+  }).join('');
+  return `<li class="site ${open ? '' : 'collapsed'}">
+      <div class="site-head">
+        <button class="site-toggle" data-collapse="${esc(site)}" aria-expanded="${open}" title="${open ? 'Fold up' : 'Show the pages'}">${open ? '▾' : '▸'}</button>
+        <span class="page-text"><span class="name" title="${esc(site)}">${esc(site)}</span><span class="url">${pages.length} ${pages.length === 1 ? 'page' : 'pages'}</span></span>
+        <span class="devices">${buttons}</span>
+      </div>
+      ${open ? `<ul class="site-pages">${pages.map((p) => pageRow(p, viewports)).join('')}</ul>` : ''}
+    </li>`;
+}
+
 function renderPages({ pages, viewports }) {
   $('#bulk').innerHTML = pages.length ? viewports.map((v) => {
     const allOn = pages.every((p) => p.on[v]);
     return `<button class="btn btn-small" data-bulk="${esc(v)}" data-on="${!allOn}">${allOn ? 'Deselect' : 'Select'} all ${esc(v)}</button>`;
   }).join('') : '';
-  $('#pages').innerHTML = pages.length ? pages.map((p) => `
-    <li>
-      <span class="page-text"><span class="name">${esc(p.name)}</span><span class="url">${esc(p.url)}</span></span>
-      <span class="devices">${viewports.map((v) => `<button class="device ${p.on[v] ? 'on' : ''}" data-page="${esc(p.name)}" data-viewport="${esc(v)}"
-        aria-pressed="${p.on[v]}" title="${p.on[v] ? 'Switch off' : 'Switch on'}: ${esc(v)}">${esc(v)}</button>`).join('')}</span>
-      <button class="remove" data-remove="${esc(p.name)}" title="Remove">×</button>
-    </li>`).join('') : '<li class="hint">No pages yet. Add one below.</li>';
+  $('#pages').innerHTML = pages.length
+    ? groupBySite(pages).map((g) => siteRow(g, viewports)).join('')
+    : '<li class="hint">No pages yet. Add one below.</li>';
 }
 
 $('#bulk').addEventListener('click', async (e) => {
@@ -162,9 +201,24 @@ $('#bulk').addEventListener('click', async (e) => {
 });
 
 $('#pages').addEventListener('click', async (e) => {
+  const fold = e.target.closest('[data-collapse]');
+  if (fold) {
+    const site = fold.dataset.collapse;
+    if (collapsedSites.has(site)) collapsedSites.delete(site); else collapsedSites.add(site);
+    drawn.pages = null;
+    renderPages(state);
+    drawn.pages = JSON.stringify({ pages: state.pages, viewports: state.viewports });
+    return;
+  }
   const btn = e.target.closest('[data-viewport]');
   if (!btn) return;
-  await api('POST', `/api/pages/${btn.dataset.page}`, { viewport: btn.dataset.viewport, on: !btn.classList.contains('on') });
+  try {
+    if (btn.dataset.site) {
+      await api('POST', `/api/sites/${encodeURIComponent(btn.dataset.site)}`, { viewport: btn.dataset.viewport, on: btn.dataset.on === 'true' });
+    } else {
+      await api('POST', `/api/pages/${btn.dataset.page}`, { viewport: btn.dataset.viewport, on: !btn.classList.contains('on') });
+    }
+  } catch (err) { alert(err.message); }
   refresh();
 });
 $('#pages').addEventListener('click', async (e) => {
