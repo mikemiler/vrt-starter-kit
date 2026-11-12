@@ -21,6 +21,7 @@
     "compare": "node src/cli.js compare",
     "pick": "node src/picker.js",
     "check": "node src/cli.js check",
+    "login": "node src/cli.js login",
     "inspect": "node src/inspect.js"
   },
   "dependencies": {

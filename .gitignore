@@ -8,3 +8,6 @@ settings.json
 dist
 instructor/mirror-files
 _locked
+auth.json
+.auth/
+.env

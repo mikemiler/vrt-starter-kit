@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const PAGES_FILE = path.join(ROOT, 'pages.json');       // your pages, managed in the dashboard
 export const SNIPPETS_FILE = path.join(ROOT, 'snippets.json'); // your snippet library (Step 3)
+export const AUTH_FILE = path.join(ROOT, 'auth.json');         // logins for pages behind a login (git-ignored, has passwords)
+export const AUTH_DIR = path.join(ROOT, '.auth');              // saved browser sessions, one per login (git-ignored)
 export const SETTINGS_FILE = path.join(ROOT, 'settings.json'); // settings changed in the dashboard
 export const SHOTS = path.join(ROOT, 'screenshots');
 export const CURRENT = path.join(SHOTS, 'current');   // Step 1: plain screenshots

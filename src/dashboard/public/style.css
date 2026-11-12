@@ -244,3 +244,7 @@ figcaption { font-size: 12px; font-weight: 700; color: var(--muted); text-transf
 
 /* Reset in the step bar: clearly not just another step */
 #steps button.reset { color: var(--red); border-color: var(--red); background: var(--red-soft); }
+
+.login-form { display: grid; gap: 8px; margin-top: 12px; }
+.login-form input, #logins select { padding: 8px 10px; border: 1px solid var(--line, #d8d8d8); border-radius: 8px; font: inherit; }
+.login-form details { display: grid; gap: 8px; } .login-form details input { margin-top: 8px; width: 100%; box-sizing: border-box; }
