@@ -302,6 +302,13 @@ function renderLogins({ logins, pages }) {
       <input name="loginUrl" placeholder="Login page, e.g. http://localhost:3150/admin/login" required autocomplete="off">
       <input name="email" placeholder="Email or username" autocomplete="off">
       <input name="password" type="password" placeholder="Password (empty keeps the saved one)" autocomplete="new-password">
+      <details><summary>Field selectors (only if the form is not a standard one)</summary>
+        <p class="hint">CSS selectors; empty = automatic. Also settable per login with <code>VRT_LOGIN_&lt;NAME&gt;_EMAIL_SELECTOR</code>, <code>_PASSWORD_SELECTOR</code>, <code>_SUBMIT_SELECTOR</code>, <code>_SUCCESS_SELECTOR</code>.</p>
+        <input name="emailSelector" placeholder="Email field, e.g. #user" autocomplete="off">
+        <input name="passwordSelector" placeholder="Password field, e.g. #pass" autocomplete="off">
+        <input name="submitSelector" placeholder="Login button, e.g. #go" autocomplete="off">
+        <input name="successSelector" placeholder="Visible once logged in, e.g. .dashboard (default: left the login page)" autocomplete="off">
+      </details>
       <button class="btn" type="submit">Save</button>
     </form>
     <p class="error" id="login-error" hidden></p>
@@ -318,7 +325,7 @@ $('#logins').addEventListener('submit', async (e) => {
   const err = $('#login-error');
   err.hidden = true;
   try {
-    await api('POST', '/api/logins', Object.fromEntries(new FormData(e.target)));
+    await api('POST', '/api/logins', Object.fromEntries([...new FormData(e.target)].filter(([, v]) => v !== ''))); // empty fields keep what is saved
     refresh();
   } catch (error) { err.textContent = error.message; err.hidden = false; }
 });

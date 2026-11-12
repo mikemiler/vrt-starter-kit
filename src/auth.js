@@ -48,6 +48,7 @@ export function resolveLogin(id) {
   const stored = readFile()[id];
   const env = (field) => process.env[envKey(id, field)];
   const hasEnv = ['URL', 'EMAIL', 'PASSWORD'].some((f) => env(f));
+  const selectorEnv = { emailSelector: 'EMAIL_SELECTOR', passwordSelector: 'PASSWORD_SELECTOR', submitSelector: 'SUBMIT_SELECTOR', successSelector: 'SUCCESS_SELECTOR' };
   if (!stored && !hasEnv) return null;
   return {
     id,
@@ -56,6 +57,7 @@ export function resolveLogin(id) {
     ...(env('URL') && { loginUrl: env('URL') }),
     ...(env('EMAIL') && { email: env('EMAIL') }),
     ...(env('PASSWORD') && { password: env('PASSWORD') }),
+    ...Object.fromEntries(Object.entries(selectorEnv).filter(([, field]) => env(field)).map(([key, field]) => [key, env(field)])),
   };
 }
 
@@ -73,13 +75,14 @@ export const sessionTime = (id) => {
 // What the dashboard may see: everything except the password.
 export function publicLogins() {
   return listLoginIds().map((id) => {
-    const { loginUrl, email, password, emailSelector, passwordSelector, submitSelector } = resolveLogin(id);
+    const { loginUrl, email, password, emailSelector, passwordSelector, submitSelector, successSelector } = resolveLogin(id);
     const custom = (value, key) => (value && value !== DEFAULT_SELECTORS[key] ? value : '');
     return {
       id, loginUrl: loginUrl || '', email: email || '', hasPassword: Boolean(password),
       emailSelector: custom(emailSelector, 'emailSelector'),
       passwordSelector: custom(passwordSelector, 'passwordSelector'),
       submitSelector: custom(submitSelector, 'submitSelector'),
+      successSelector: successSelector || '',
       session: sessionTime(id),
     };
   });
@@ -98,7 +101,7 @@ export function saveLogin(input) {
   }
   if ('email' in input) next.email = String(input.email || '').trim();
   if (input.password) next.password = String(input.password); // an empty password keeps the saved one
-  for (const key of Object.keys(DEFAULT_SELECTORS)) {
+  for (const key of [...Object.keys(DEFAULT_SELECTORS), 'successSelector']) {
     if (key in input) { const v = String(input[key] || '').trim(); if (v) next[key] = v; else delete next[key]; }
   }
   if (!next.loginUrl) throw problem('A login needs the address of its login page.');
@@ -131,21 +134,28 @@ export async function loginWith(browser, id) {
 
     const email = page.locator(login.emailSelector).first();
     const password = page.locator(login.passwordSelector).first();
+    const submit = page.locator(login.submitSelector).first();
     try {
       await email.fill(login.email, { timeout: 10_000 });
+      // Two-step forms (email, "Next", then password): the password field only appears after the first step.
+      if (!(await password.isVisible().catch(() => false))) {
+        await submit.click({ timeout: 10_000 });
+        await password.waitFor({ state: 'visible', timeout: 10_000 });
+      }
       await password.fill(login.password, { timeout: 10_000 });
     } catch {
-      return { ok: false, error: `Could not find the login form on ${login.loginUrl}. Set the field selectors for "${id}".` };
+      return { ok: false, error: `Could not find the login form on ${login.loginUrl}. Set the field selectors for "${id}" (Logins > Field selectors, or VRT_LOGIN_<NAME>_EMAIL_SELECTOR / _PASSWORD_SELECTOR / _SUBMIT_SELECTOR).` };
     }
-    await Promise.all([
-      page.locator(login.submitSelector).first().click({ timeout: 10_000 }).catch(() => password.press('Enter')),
-    ]);
-    // Logged in = we left the login page, or the password field is gone.
-    const left = await page.waitForFunction(
-      (from) => location.pathname !== from || !document.querySelector('input[type="password"]'),
-      startPath, { timeout: LOGIN_TIMEOUT },
-    ).then(() => true).catch(() => false);
-    if (!left) return { ok: false, error: `Login "${id}" did not complete: still on the login page. Wrong email or password?` };
+    await submit.click({ timeout: 10_000 }).catch(() => password.press('Enter'));
+    // Logged in = the success element is visible, or (without one) we left the login page / the password field is gone.
+    const done = login.successSelector
+      ? page.locator(login.successSelector).first().waitFor({ state: 'visible', timeout: LOGIN_TIMEOUT })
+      : page.waitForFunction(
+        (from) => location.pathname !== from || !document.querySelector('input[type="password"]'),
+        startPath, { timeout: LOGIN_TIMEOUT },
+      );
+    const left = await done.then(() => true).catch(() => false);
+    if (!left) return { ok: false, error: `Login "${id}" did not complete: ${login.successSelector ? `"${login.successSelector}" never appeared` : 'still on the login page'}. Wrong email or password?` };
     await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
 
     fs.mkdirSync(AUTH_DIR, { recursive: true });

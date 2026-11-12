@@ -118,8 +118,14 @@ tool logs in once per login in a real browser and photographs those pages as tha
 - **Or use environment variables** (they win over `auth.json`; a `.env` file in this folder is read too):
   `VRT_LOGIN_<NAME>_URL`, `VRT_LOGIN_<NAME>_EMAIL`, `VRT_LOGIN_<NAME>_PASSWORD` (name upper-cased, other
   characters become `_`). See `.env.example`.
-- **A form that is not standard:** set `emailSelector`, `passwordSelector`, `submitSelector` for the login
-  in `auth.json`. The defaults cover Payload, WordPress and most `type="email"` / `type="password"` forms.
+- **A form that is not standard:** open **Logins → Field selectors** in the dashboard, or set them in
+  `auth.json` / the environment: `emailSelector`, `passwordSelector`, `submitSelector` (CSS selectors;
+  env: `VRT_LOGIN_<NAME>_EMAIL_SELECTOR`, `_PASSWORD_SELECTOR`, `_SUBMIT_SELECTOR`). The defaults cover
+  Payload, WordPress and most `type="email"` / `type="password"` forms, and two-step forms (email, "Next",
+  then password) work without any selector.
+- **Single-page apps:** the login counts as done when we leave the login page or the password field
+  disappears. If the URL does not change and the form stays, set `successSelector` (env `_SUCCESS_SELECTOR`),
+  an element that is visible once logged in, e.g. `.dashboard`.
 
 ## Troubleshooting
 
